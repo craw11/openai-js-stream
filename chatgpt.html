@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with ChatGPT</title>
+    <script src="sse.js"></script>
+    <script src="sse.ts"></script>
+</head>
+<body>
+    <h1>Chat with ChatGPT</h1>
+    <p>输入您的openai key</p>
+    <input type="text" id="key">
+    <p>Enter your message below and click "Send" to chat with ChatGPT:</p>
+    <input type="text" id="inputBox">
+  
+    <button onclick="sendMessage()">Send</button>
+    <hr>
+    <p>ChatGPT's response:</p>
+    <div id="outputBox"></div>
+    <script>
+        async function sendMessage() {
+            const message = document.getElementById("inputBox").value;
+            const key = document.getElementById("key").value;
+         
+
+            outputBox.innerHTML += "<p><strong>You:</strong> " + message + "</p>";
+            const messages = [
+                {
+                    role: 'user',
+                    content: message,
+                }
+            ];
+            const source = new SSE(
+                "https://api.openai.com/v1/chat/completions", {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + key,
+                    },
+                    method: "POST",
+                    payload: JSON.stringify({
+                        model: "gpt-3.5-turbo",
+                        messages: messages,
+                        stream: true,
+                    }),
+                }
+            );
+            source.addEventListener("message", function (e) {
+                if (e.data != '[DONE]') {
+                    try {
+                        const data = e.data;
+                        const json = JSON.parse(data);
+                        if (json.choices[0].delta.content.toString()) {
+                            const response = json.choices[0].delta.content.toString();
+                            const outputBox = document.getElementById("outputBox");
+                            
+                            outputBox.innerHTML +=  response ;
+                        }
+                    } catch (e) {
+                        console.log('解析错误');
+                    }
+                } else {
+                    console.log('结束')
+                }
+            });
+            await source.stream();
+        }
+    </script>
+</body>
+</html>
